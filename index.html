@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoirIntel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  /* Paper surfaces — warm near-white, one consistent temperature */
+  --bg:           oklch(98.4% 0.004 80);
+  --bg-panel:    oklch(96.6% 0.006 80);
+  --bg-hover:    oklch(94.4% 0.008 80);
+  --bg-sunken:   oklch(99.2% 0.003 80);
+  --border:      oklch(91% 0.007 80);
+  --border-mid:  oklch(85% 0.009 80);
+  --border-strong: oklch(74% 0.011 80);
+
+  /* Text */
+  --text-primary:   oklch(22% 0.012 80);
+  --text-secondary: oklch(38% 0.010 80);
+  --text-tertiary:  oklch(54% 0.010 80);
+  --text-quaternary: oklch(68% 0.008 80);
+
+  /* Sidebar tokens — kept as aliases so sources.html etc. continue to resolve.
+     Now mapped to the same paper surface, not dark glass. */
+  --sb-bg:         var(--bg-panel);
+  --sb-hover:      var(--bg-hover);
+  --sb-active:     oklch(92% 0.012 80);
+  --sb-text:       var(--text-secondary);
+  --sb-text-bright: var(--text-primary);
+  --sb-label:      var(--text-quaternary);
+  --sb-count:      var(--text-tertiary);
+  --sb-border:     var(--border);
+
+  /* Accent — warm amber, used sparingly */
+  --accent:        oklch(60% 0.16 65);
+  --accent-strong: oklch(52% 0.18 65);
+  --accent-bg:     oklch(95% 0.030 65);
+
+  /* Category hues — restrained chroma, distinct hue rotation.
+     "fg" = the readable label/icon color; "rule" = the 3px left rail. */
+  --cat-competitor:    oklch(44% 0.13 248);
+  --cat-competitor-bg: oklch(95.4% 0.024 248);
+  --cat-competitor-rule: oklch(58% 0.16 248);
+
+  --cat-demand:        oklch(42% 0.13 158);
+  --cat-demand-bg:     oklch(95.4% 0.026 158);
+  --cat-demand-rule:   oklch(56% 0.16 158);
+
+  --cat-regulatory:    oklch(44% 0.13 55);
+  --cat-regulatory-bg: oklch(95.4% 0.026 55);
+  --cat-regulatory-rule: oklch(60% 0.17 55);
+
+  --cat-commodity:     oklch(44% 0.13 300);
+  --cat-commodity-bg:  oklch(95.4% 0.024 300);
+  --cat-commodity-rule: oklch(56% 0.16 300);
+
+  --cat-jobs:          oklch(42% 0.12 200);
+  --cat-jobs-bg:       oklch(95.4% 0.022 200);
+  --cat-jobs-rule:     oklch(56% 0.15 200);
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body { background: var(--bg); }
+
+body {
+  font-family: var(--font);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Topbar — same paper, hairline divider, no blur, no animation */
+.topbar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.wordmark {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.wordmark::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  margin-left: 8px;
+  vertical-align: 1px;
+  border-radius: 1px;
+}
+.topbar-divider { width: 1px; height: 16px; background: var(--border); }
+.run-status {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.run-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: oklch(60% 0.16 152);
+}
+.topbar-spacer { flex: 1; }
+
+/* Selection */
+::selection { background: var(--accent-bg); color: var(--text-primary); }
+</style>
+
+<style>
+.layout { display: flex; height: calc(100vh - 44px); }
+
+/* ── Sidebar ─────────────────────────────────────────────── */
+.sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  padding: 14px 10px 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.sidebar::-webkit-scrollbar { width: 6px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+.sb-section { display: flex; flex-direction: column; gap: 1px; }
+
+.sb-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-quaternary);
+  padding: 0 10px;
+  margin-bottom: 5px;
+}
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
+  font-variant-numeric: tabular-nums;
+}
+.sb-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sb-link.active {
+  background: var(--sb-active);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.sb-count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-quaternary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.sb-link.active .sb-count { color: var(--text-tertiary); }
+
+/* Category pip — small square chip in the category's rule color */
+.cat-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.pip-all       { background: var(--text-quaternary); }
+.pip-competitor { background: var(--cat-competitor-rule); }
+.pip-jobs       { background: var(--cat-jobs-rule); }
+.pip-demand_side { background: var(--cat-demand-rule); }
+.pip-regulatory { background: var(--cat-regulatory-rule); }
+.pip-commodity  { background: var(--cat-commodity-rule); }
+
+.sb-divider { height: 1px; background: var(--border); margin: 2px 4px; }
+
+/* ── Main column ─────────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--bg);
+}
+
+.main-summary {
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+.summary-bold {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Category mini-stat pills in the summary bar */
+.stag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px 2px 7px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease), color 0.12s var(--ease);
+}
+.stag:hover { background: var(--bg-hover); color: var(--text-primary); }
+.stag::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  display: inline-block;
+}
+.stag-competitor::before { background: var(--cat-competitor-rule); }
+.stag-jobs::before       { background: var(--cat-jobs-rule); }
+.stag-demand_side::before { background: var(--cat-demand-rule); }
+.stag-regulatory::before { background: var(--cat-regulatory-rule); }
+.stag-commodity::before  { background: var(--cat-commodity-rule); }
+
+/* ── Time filter ─────────────────────────────────────── */
+.time-filter {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  overflow: hidden;
+}
+.tf-btn {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  text-decoration: none;
+  border-right: 1px solid var(--border);
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
+  font-variant-numeric: tabular-nums;
+}
+.tf-btn:last-child { border-right: none; }
+.tf-btn:hover { background: var(--bg-hover); color: var(--text-primary); }
+.tf-btn.active {
+  background: var(--text-primary);
+  color: var(--bg);
+}
+
+/* ── Meaningful-only toggle ────────────────────────── */
+.priority-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  transition: color 0.12s var(--ease);
+}
+.priority-toggle:hover { color: var(--text-secondary); }
+.priority-toggle.on { color: var(--text-primary); }
+.toggle-track {
+  display: inline-block;
+  width: 24px;
+  height: 13px;
+  border-radius: 7px;
+  background: var(--border-mid);
+  position: relative;
+  transition: background 0.18s var(--ease);
+}
+.priority-toggle.on .toggle-track { background: var(--accent-strong); }
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.18s var(--ease);
+}
+.priority-toggle.on .toggle-knob { transform: translateX(11px); }
+.toggle-label { font-weight: 500; letter-spacing: -0.005em; }
+
+/* ── Subtype / market pill rows ────────────────────── */
+.subtype-row {
+  padding: 7px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  background: var(--bg-sunken);
+}
+.sub-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  background: var(--bg);
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease), color 0.12s var(--ease);
+}
+.sub-pill:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-mid); }
+.sub-pill.active {
+  background: var(--text-primary);
+  color: var(--bg);
+  border-color: var(--text-primary);
+}
+.sub-pill-count {
+  font-size: 10px;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+
+.noise-note {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.noise-note a { color: var(--text-tertiary); text-decoration: underline; text-underline-offset: 2px; }
+.noise-note a:hover { color: var(--text-secondary); }
+
+/* ── Feed list ───────────────────────────────────────── */
+.feed { flex: 1; overflow-y: auto; background: var(--bg); }
+.feed::-webkit-scrollbar { width: 8px; }
+.feed::-webkit-scrollbar-track { background: transparent; }
+.feed::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 4px; }
+
+.empty-state {
+  padding: 64px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 480px;
+}
+.empty-state-head { font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.empty-state-sub { font-size: 12.5px; color: var(--text-tertiary); }
+
+.feed-end {
+  padding: 22px 24px 32px;
+  color: var(--text-quaternary);
+  font-size: 11px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Item row — no tinted column; 3px rule + tight grid ─── */
+.item {
+  display: grid;
+  grid-template-columns: 3px 116px 1fr;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  position: relative;
+  transition: background 0.10s var(--ease);
+}
+.item:hover { background: var(--bg-panel); }
+.item:active { background: var(--bg-hover); }
+.item.selected {
+  background: var(--bg-panel);
+}
+.item.selected::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 0;
+  border-left: 2px solid var(--accent-strong);
+  pointer-events: none;
+}
+.item.high .item-title { font-weight: 600; }
+.item.read .item-title { color: var(--text-tertiary); font-weight: 400; }
+.item.read .item-summary { color: var(--text-quaternary); }
+.item.read .cat-rule { opacity: 0.45; }
+.item.read .rel-dot.on { opacity: 0.5; }
+.item.read .cat-label { opacity: 0.7; }
+
+/* The category rail (replaces the old tinted column) */
+.cat-rule {
+  width: 3px;
+  align-self: stretch;
+  background: var(--border-mid);
+}
+.item[data-cat="competitor"]  .cat-rule { background: var(--cat-competitor-rule); }
+.item[data-cat="jobs"]        .cat-rule { background: var(--cat-jobs-rule); }
+.item[data-cat="demand_side"] .cat-rule { background: var(--cat-demand-rule); }
+.item[data-cat="regulatory"]  .cat-rule { background: var(--cat-regulatory-rule); }
+.item[data-cat="commodity"]   .cat-rule { background: var(--cat-commodity-rule); }
+
+/* The narrow metadata column — just impact + small cat label */
+.item-cat {
+  padding: 14px 14px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cat-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+.cat-label.cat-competitor  { color: var(--cat-competitor); }
+.cat-label.cat-jobs        { color: var(--cat-jobs); }
+.cat-label.cat-demand_side { color: var(--cat-demand); }
+.cat-label.cat-regulatory  { color: var(--cat-regulatory); }
+.cat-label.cat-commodity   { color: var(--cat-commodity); }
+
+/* Impact — sits directly under the category label so the eye lands here first */
+.impact-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.impact-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-quaternary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.rel-dots {
+  display: flex;
+  gap: 3px;
+  cursor: help;
+}
+.rel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.item[data-cat="competitor"]  .rel-dot.on { background: var(--cat-competitor-rule); }
+.item[data-cat="jobs"]        .rel-dot.on { background: var(--cat-jobs-rule); }
+.item[data-cat="demand_side"] .rel-dot.on { background: var(--cat-demand-rule); }
+.item[data-cat="regulatory"]  .rel-dot.on { background: var(--cat-regulatory-rule); }
+.item[data-cat="commodity"]   .rel-dot.on { background: var(--cat-commodity-rule); }
+
+/* Item body */
+.item-body {
+  padding: 14px 24px 14px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  max-width: 70ch;
+}
+.item-summary {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 70ch;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.item-summary.expanded { -webkit-line-clamp: unset; max-width: 75ch; }
+.show-more {
+  font-size: 11px;
+  color: var(--accent-strong);
+  font-weight: 500;
+  cursor: pointer;
+  margin-top: 4px;
+  display: none;
+}
+.item-summary.truncated + .show-more { display: inline-block; }
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
+}
+.meta-company {
+  font-weight: 500;
+  font-size: 11px;
+  color: var(--text-secondary);
+  border-left: 2px solid var(--border-mid);
+  padding-left: 6px;
+}
+.item[data-cat="competitor"]  .meta-company { border-left-color: var(--cat-competitor-rule); }
+.item[data-cat="jobs"]        .meta-company { border-left-color: var(--cat-jobs-rule); }
+.item[data-cat="demand_side"] .meta-company { border-left-color: var(--cat-demand-rule); }
+.item[data-cat="regulatory"]  .meta-company { border-left-color: var(--cat-regulatory-rule); }
+.item[data-cat="commodity"]   .meta-company { border-left-color: var(--cat-commodity-rule); }
+.meta-sep { color: var(--text-quaternary); }
+.meta-subtype {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  font-weight: 600;
+}
+.item-time { margin-left: auto; font-size: 11px; color: var(--text-quaternary); }
+
+/* ── Detail panel ────────────────────────────────────────── */
+.detail {
+  width: 320px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-sunken);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.detail::-webkit-scrollbar { width: 6px; }
+.detail::-webkit-scrollbar-track { background: transparent; }
+.detail::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+.detail-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 28px;
+  pointer-events: none;
+}
+
+.detail-band {
+  padding: 10px 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.detail-band::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+.detail-band-competitor  { color: var(--cat-competitor); }
+.detail-band-competitor::before  { background: var(--cat-competitor-rule); }
+.detail-band-jobs        { color: var(--cat-jobs); }
+.detail-band-jobs::before        { background: var(--cat-jobs-rule); }
+.detail-band-demand_side { color: var(--cat-demand); }
+.detail-band-demand_side::before { background: var(--cat-demand-rule); }
+.detail-band-regulatory  { color: var(--cat-regulatory); }
+.detail-band-regulatory::before  { background: var(--cat-regulatory-rule); }
+.detail-band-commodity   { color: var(--cat-commodity); }
+.detail-band-commodity::before   { background: var(--cat-commodity-rule); }
+
+.detail-content {
+  padding: 18px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.detail-summary {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+.detail-divider { height: 1px; background: var(--border); }
+.detail-row { display: flex; flex-direction: column; gap: 4px; }
+.detail-row-label {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-quaternary);
+  font-weight: 600;
+}
+.detail-row-val {
+  font-size: 12.5px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.rel-bar { display: flex; gap: 3px; margin-top: 4px; }
+.rel-bar-seg {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.15s var(--ease);
+}
+
+.detail-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 9px 14px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease);
+}
+.detail-link:hover {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+.detail-link-arrow { color: var(--text-quaternary); }
+
+.action-btn-ghost {
+  background: none;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.12s var(--ease), border-color 0.12s var(--ease), color 0.12s var(--ease);
+}
+.action-btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); border-color: var(--border-strong); }
+.action-btn-ghost.saved {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">CoirIntel</div>
+  <div class="topbar-divider"></div>
+  <div class="run-status"><span class="run-dot"></span>Live</div>
+  <div class="topbar-spacer"></div>
+  <span class="run-status">Last updated 23 Oct 2026, 13:30 IST</span>
+</div>
+
+<div class="layout">
+
+  <!-- ── Sidebar ───────────────────────────────── -->
+  <div class="sidebar" id="sidebar"></div>
+
+  <!-- ── Main ──────────────────────────────────── -->
+  <div class="main">
+    <div class="main-summary" id="summary"></div>
+    <div id="pills"></div>
+    <div class="feed" id="feed"></div>
+  </div>
+
+  <!-- ── Detail panel ──────────────────────────── -->
+  <div class="detail" id="detail">
+    <div class="detail-empty">
+      <span style="font-size:13px;color:var(--text-primary);font-weight:500;">Select a signal</span>
+      <span style="font-size:12px;color:var(--text-tertiary);line-height:1.6;">Click any row to read the summary or open the source.</span>
+    </div>
+  </div>
+
+</div>
+
+<script id="coir-config" type="application/json">{"CATEGORIES": ["competitor", "jobs", "demand_side", "regulatory", "commodity"], "HIGH_PRIORITY_THRESHOLD": 3, "MEDIA_CATEGORIES": ["horticulture", "cannabis", "blueberry_latam", "coir_associations", "india_trade", "country_media"], "RELEVANT_SCORE_FLOOR": 2, "SUBTYPE_LABELS": {"certification": "Certification", "executive_hire": "Executive Hire", "export_activity": "Expansion", "freight_rates": "Freight", "general_update": "General", "greenhouse_expansion": "Greenhouse", "investment": "Investment", "market_growth": "Market Growth", "new_farm": "New Farm", "new_hire": "New Hire", "partnership": "Partnership", "phytosanitary": "Phytosanitary", "policy_support": "Policy", "price_movement": "Price", "product_launch": "Product Launch", "supply_change": "Supply", "tariff_change": "Tariff", "trade_policy": "Trade Policy", "trade_show": "Trade Show"}, "today": "23 Oct 2026"}</script>
+<script src="filter.js"></script>
+<script>
+const F = window.CoirFilter;
+const CONFIG = JSON.parse(document.getElementById('coir-config').textContent);
+F.configure(CONFIG);
+const esc = F.esc;
+const safeHref = F.safeHref;
+let items = [];
+let currentIdx = null;
+
+// Python str.title(): upper-case each letter that follows a non-letter.
+function title(s) {
+  return String(s ?? '').toLowerCase().replace(/(^|[^a-z])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+}
+// Jinja truncate(20, true, '…') with its default leeway of 5.
+function truncate(s, n) {
+  return s.length <= n + 5 ? s : s.slice(0, n - 1) + '…';
+}
+// Relative link from [key, value] pairs; null/'' values are dropped.
+function link(pairs) {
+  const q = pairs.filter(p => p && p[1] !== null && p[1] !== undefined && p[1] !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`);
+  return q.length ? './?' + q.join('&') : './';
+}
+function a(href, cls, inner, extra) {
+  return `<a href="${esc(href)}" class="${cls}"${extra || ''}>${inner}</a>`;
+}
+
+function render(data, search, nowMs) {
+  const p = F.parseParams(search);
+  items = F.filterItems(data.items, p, nowMs);
+  const counts = F.categoryCounts(items);
+  const global = F.globalCounts(data.items, p, nowMs);
+  const companyCounts = F.companyCounts(data.items, p, nowMs);
+  const subCounts = F.subtypeCounts(data.items, p, nowMs);
+  const countryCounts = F.countryCounts(data.items, p, nowMs);
+  const activeDays = p.company_id ? null : (p.days === 0 ? 0 : (p.days !== null ? p.days : 7));
+  const hpOff = p.high_priority ? null : ['high_priority', 'false'];
+  const daysQ = ['days', activeDays !== null && activeDays !== 7 ? activeDays : null];
+  const active = on => on ? ' active' : '';
+
+  // Sidebar
+  let sb = `<div class="sb-section"><div class="sb-label">Signals</div>`;
+  sb += a(link([hpOff]), 'sb-link' + active(!p.category && !p.company_id && !p.media_category),
+    `<span class="cat-pip pip-all"></span>All<span class="sb-count">${esc(global.total)}</span>`);
+  for (const cat of CONFIG.CATEGORIES) {
+    const n = global.counts[cat];
+    sb += a(link([['category', cat], ['company_id', p.company_id], hpOff]), 'sb-link' + active(p.category === cat),
+      `<span class="cat-pip pip-${esc(cat)}"></span>${esc(title(cat.replace('_', '-')))}${n ? `<span class="sb-count">${esc(n)}</span>` : ''}`);
+  }
+  sb += `</div><div class="sb-divider"></div><div class="sb-section">`;
+  sb += a('sources/', 'sb-link', `<span class="cat-pip" style="background:var(--text-quaternary)"></span>Sources`);
+  sb += `</div><div class="sb-divider"></div><div class="sb-section"><div class="sb-label">Media</div>`;
+  for (const mc of CONFIG.MEDIA_CATEGORIES) {
+    sb += a(link([['media_category', mc]]), 'sb-link' + active(p.media_category === mc),
+      esc(title(mc.replace(/_/g, ' '))), ' style="font-size:12px;"');
+  }
+  sb += `</div>`;
+  if (Object.keys(companyCounts).length || p.company_id) {
+    sb += `<div class="sb-divider"></div><div class="sb-section"><div class="sb-label">Companies</div>`;
+    for (const co of data.companies) {
+      const n = companyCounts[co.id] || 0;
+      if (!(n > 0 || p.company_id === co.id)) continue;
+      const name = title(co.name);
+      sb += a(link([['company_id', co.id], ['category', p.category]]), 'sb-link' + active(p.company_id === co.id),
+        `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;">${esc(truncate(name, 20))}</span>${n > 0 ? `<span class="sb-count">${esc(n)}</span>` : ''}`,
+        ` style="font-size:12px;" title="${esc(name)}"`);
+    }
+    sb += `</div>`;
+  }
+  document.getElementById('sidebar').innerHTML = sb;
+
+  // Summary bar
+  const total = items.length;
+  let sm = `<span class="summary-bold">${esc(total)} signal${total !== 1 ? 's' : ''}</span>`;
+  for (const cat of CONFIG.CATEGORIES) {
+    if (!counts[cat]) continue;
+    sm += a(link([['category', cat], ['company_id', p.company_id], daysQ, hpOff]), `stag stag-${esc(cat)}`,
+      `${esc(counts[cat])} ${esc(cat.replace('_', '-'))}`);
+  }
+  const base = [['category', p.category], ['subtype', p.subtype], ['country', p.country], ['company_id', p.company_id]];
+  sm += `<div style="margin-left:auto; display:flex; align-items:center; gap:14px;">`;
+  sm += a(link([...base, ['high_priority', p.high_priority ? 'false' : 'true'], daysQ]), 'priority-toggle' + (p.high_priority ? ' on' : ''),
+    `<span class="toggle-track"><span class="toggle-knob"></span></span><span class="toggle-label">High priority</span>`,
+    ` title="High Priority = score 5 only (Act this week). When OFF, the feed expands to scores 2–5. Noise items (score 1) are always hidden."`);
+  if (!p.company_id) {
+    sm += `<div class="time-filter">`;
+    for (const [d, label] of [[7, '7d'], [30, '30d'], [90, '90d'], [0, 'All']]) {
+      sm += a(link([...base, ['days', d], hpOff]), 'tf-btn' + active(activeDays === d), label);
+    }
+    sm += `</div>`;
+  } else {
+    sm += `<span style="color:var(--text-tertiary);font-size:11.5px;">${esc(CONFIG.today)}</span>`;
+  }
+  sm += `</div>`;
+  document.getElementById('summary').innerHTML = sm;
+
+  // Subtype + market pills
+  const byCount = o => Object.entries(o).sort((x, y) => y[1] - x[1]);
+  let pills = '';
+  if (p.category && Object.keys(subCounts).length) {
+    pills += `<div class="subtype-row">`;
+    pills += a(link([['category', p.category], ['company_id', p.company_id], daysQ, ['country', p.country], hpOff]),
+      'sub-pill' + active(!p.subtype), 'All types');
+    for (const [sub, n] of byCount(subCounts)) {
+      if (!(n > 0 && sub !== 'general_update')) continue;
+      pills += a(link([['category', p.category], ['subtype', sub], ['company_id', p.company_id], daysQ, ['country', p.country], hpOff]),
+        'sub-pill' + active(p.subtype === sub),
+        `${esc(CONFIG.SUBTYPE_LABELS[sub] || title(sub.replace(/_/g, ' ')))} <span class="sub-pill-count">${esc(n)}</span>`);
+    }
+    pills += `</div>`;
+  }
+  if (p.category && Object.keys(countryCounts).length) {
+    pills += `<div class="subtype-row"><span class="sb-label" style="padding: 0; margin: 0; font-size: 9.5px; color: var(--text-quaternary); margin-right: 4px;">Market</span>`;
+    pills += a(link([['category', p.category], ['subtype', p.subtype], ['company_id', p.company_id], daysQ, hpOff]),
+      'sub-pill' + active(!p.country), 'All markets');
+    for (const [cn, n] of byCount(countryCounts)) {
+      pills += a(link([['category', p.category], ['country', cn], ['subtype', p.subtype], ['company_id', p.company_id], daysQ, hpOff]),
+        'sub-pill' + active(p.country === cn), `${esc(cn)} <span class="sub-pill-count">${esc(n)}</span>`);
+    }
+    pills += `</div>`;
+  }
+  document.getElementById('pills').innerHTML = pills;
+
+  // Feed
+  let feed = '';
+  items.forEach((item, idx) => {
+    const cat = item.signal_category ?? '';
+    const hasSubtype = item.signal_subtype && item.signal_subtype !== 'general_update';
+    const hasSource = item.sources && item.sources.name;
+    let meta = '';
+    if (item.companies) meta += `<span class="meta-company">${esc(title(item.companies.name))}</span>`;
+    if (hasSubtype) {
+      if (item.companies) meta += `<span class="meta-sep">·</span>`;
+      meta += `<span class="meta-subtype">${esc(CONFIG.SUBTYPE_LABELS[item.signal_subtype] || item.signal_subtype.replace('_', ' '))}</span>`;
+    }
+    if (hasSource) {
+      if (item.companies || hasSubtype) meta += `<span class="meta-sep">·</span>`;
+      meta += `<span class="meta-source">${esc(item.sources.name)}</span>`;
+    }
+    meta += `<span class="item-time">${esc((item.published_at || item.collected_at || '').slice(0, 10))}</span>`;
+    const dots = Array.from({length: 5}, (_, i) => `<div class="rel-dot${i < item.relevance_score ? ' on' : ''}"></div>`).join('');
+    feed += `<div class="item ${item.relevance_score === 5 ? 'high' : ''}" onclick="showDetail(${idx})" data-idx="${idx}" data-cat="${esc(cat)}">
+        <div class="cat-rule"></div>
+        <div class="item-cat">
+          <span class="cat-label cat-${esc(cat)}">${esc(cat.replace('_', '-'))}</span>
+          <div class="impact-block"><span class="impact-label">Impact</span><div class="rel-dots">${dots}</div></div>
+        </div>
+        <div class="item-body">
+          <div class="item-title">${esc(item.title)}</div>
+          <div class="item-summary">${esc(item.summary || '')}</div>
+          <span class="show-more" onclick="toggleSummary(event, this)">Show more</span>
+          <div class="item-meta">${meta}</div>
+        </div>
+      </div>`;
+  });
+  if (!items.length) {
+    let head = 'No signals found', sub = 'Check back after the next collection run.';
+    if (p.category) { head = `No ${p.category.replace('_', '-')} signals`; sub = 'Nothing in this category for the current period.'; }
+    else if (p.company_id) { head = 'No signals from this company'; sub = 'No intelligence items linked to this company yet.'; }
+    else if (p.media_category) { head = `No signals from ${title(p.media_category.replace(/_/g, ' '))}`; sub = 'No items from this media category yet.'; }
+    feed = `<div class="empty-state"><div class="empty-state-head">${esc(head)}</div><div class="empty-state-sub">${esc(sub)}</div></div>`;
+  } else {
+    feed += `<div class="feed-end">${esc(total)} signal${total !== 1 ? 's' : ''} · end</div>`;
+  }
+  document.getElementById('feed').innerHTML = feed;
+
+  document.querySelectorAll('.item-summary').forEach(el => {
+    if (el.scrollHeight > el.clientHeight + 1) el.classList.add('truncated');
+  });
+}
+
+const CAT_RULE = {
+  competitor: 'var(--cat-competitor-rule)',
+  jobs: 'var(--cat-jobs-rule)',
+  demand_side: 'var(--cat-demand-rule)',
+  regulatory: 'var(--cat-regulatory-rule)',
+  commodity: 'var(--cat-commodity-rule)',
+};
+
+function relBar(score, cat) {
+  const c = CAT_RULE[cat] || 'var(--accent)';
+  return Array.from({length: 5}, (_, i) =>
+    `<div class="rel-bar-seg" style="${i < score ? `background:${c}` : ''}"></div>`
+  ).join('');
+}
+
+const TIER_LABEL = {5: 'Act', 4: 'Brief', 3: 'File', 2: 'Log', 1: 'Noise'};
+function tierLabel(score) {
+  const t = TIER_LABEL[score];
+  return t ? ` · ${t}` : '';
+}
+
+function impactBreakdown(item) {
+  const b = item.impact_breakdown;
+  if (!b) return '';
+  const parts = [];
+  if (b.event_severity)   parts.push(`event +${b.event_severity}`);
+  if (b.source_authority) parts.push(`source +${b.source_authority}`);
+  if (b.market_match)     parts.push(`market +${b.market_match}`);
+  if (b.recency)          parts.push(`recency +${b.recency}`);
+  if (!parts.length) return '';
+  return `<div style="font-size:11px;margin-top:4px;color:var(--text-tertiary)">${esc(parts.join(' · '))}</div>`;
+}
+
+function showDetail(idx) {
+  const item = items[idx];
+  if (!item) return;
+
+  if (currentIdx !== null) {
+    const prev = document.querySelector(`[data-idx="${currentIdx}"]`);
+    if (prev) prev.classList.remove('selected');
+  }
+  const el = document.querySelector(`[data-idx="${idx}"]`);
+  if (el) el.classList.add('read', 'selected');
+  currentIdx = idx;
+
+  const co = item.companies ? item.companies.name : null;
+  const src = item.sources ? item.sources.name : '';
+  const cat = item.signal_category ?? '';
+
+  document.getElementById('detail').innerHTML = `
+    <div class="detail-band detail-band-${esc(cat)}">${esc(cat.replace('_','-').toUpperCase())}</div>
+    <div class="detail-content">
+      <div class="detail-title">${esc(item.title)}</div>
+      ${item.summary ? `<div class="detail-summary">${esc(item.summary)}</div>` : ''}
+      <div class="detail-divider"></div>
+      ${co ? `<div class="detail-row"><div class="detail-row-label">Company</div><div class="detail-row-val">${esc(co)}</div></div>` : ''}
+      ${item.signal_subtype && item.signal_subtype !== 'general_update' ? `<div class="detail-row"><div class="detail-row-label">Type</div><div class="detail-row-val" style="text-transform:capitalize">${esc((item.signal_subtype||'').replace(/_/g,' '))}</div></div>` : ''}
+      <div class="detail-row">
+        <div class="detail-row-label">Impact${tierLabel(item.relevance_score)}</div>
+        <div class="rel-bar">${relBar(item.relevance_score, cat)}</div>
+        <div class="detail-row-val" style="font-size:11px;margin-top:4px;color:var(--text-tertiary)">${esc(item.relevance_score)} of 5${impactBreakdown(item)}</div>
+      </div>
+      <div class="detail-row"><div class="detail-row-label">Source</div><div class="detail-row-val">${esc(src)}</div></div>
+      ${item.published_at ? `<div class="detail-row"><div class="detail-row-label">Posted</div><div class="detail-row-val">${esc((item.published_at ?? '').slice(0,16).replace('T',' '))} UTC</div></div>` : ''}
+      <div class="detail-row"><div class="detail-row-label">Collected</div><div class="detail-row-val">${esc((item.collected_at ?? '').slice(0,16).replace('T',' '))} UTC</div></div>
+      <div class="detail-divider"></div>
+      ${item.url ? `<a class="detail-link" href="${esc(safeHref(item.url))}" target="_blank" rel="noopener noreferrer">Open source <span class="detail-link-arrow">↗</span></a>` : ''}
+    </div>
+  `;
+}
+
+function toggleSummary(event, btn) {
+  event.stopPropagation();
+  const summary = btn.previousElementSibling;
+  const isExpanded = summary.classList.toggle('expanded');
+  btn.textContent = isExpanded ? 'Show less' : 'Show more';
+}
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(data => render(data, location.search, Date.now()))
+  .catch(() => {
+    document.getElementById('feed').innerHTML = '<div class="empty-state"><div class="empty-state-head">Could not load signals</div><div class="empty-state-sub">Try reloading the page.</div></div>';
+  });
+</script>
+
+</body>
+</html>

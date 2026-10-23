@@ -1,0 +1,4547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CoirIntel · Sources</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  /* Paper surfaces — warm near-white, one consistent temperature */
+  --bg:           oklch(98.4% 0.004 80);
+  --bg-panel:    oklch(96.6% 0.006 80);
+  --bg-hover:    oklch(94.4% 0.008 80);
+  --bg-sunken:   oklch(99.2% 0.003 80);
+  --border:      oklch(91% 0.007 80);
+  --border-mid:  oklch(85% 0.009 80);
+  --border-strong: oklch(74% 0.011 80);
+
+  /* Text */
+  --text-primary:   oklch(22% 0.012 80);
+  --text-secondary: oklch(38% 0.010 80);
+  --text-tertiary:  oklch(54% 0.010 80);
+  --text-quaternary: oklch(68% 0.008 80);
+
+  /* Sidebar tokens — kept as aliases so sources.html etc. continue to resolve.
+     Now mapped to the same paper surface, not dark glass. */
+  --sb-bg:         var(--bg-panel);
+  --sb-hover:      var(--bg-hover);
+  --sb-active:     oklch(92% 0.012 80);
+  --sb-text:       var(--text-secondary);
+  --sb-text-bright: var(--text-primary);
+  --sb-label:      var(--text-quaternary);
+  --sb-count:      var(--text-tertiary);
+  --sb-border:     var(--border);
+
+  /* Accent — warm amber, used sparingly */
+  --accent:        oklch(60% 0.16 65);
+  --accent-strong: oklch(52% 0.18 65);
+  --accent-bg:     oklch(95% 0.030 65);
+
+  /* Category hues — restrained chroma, distinct hue rotation.
+     "fg" = the readable label/icon color; "rule" = the 3px left rail. */
+  --cat-competitor:    oklch(44% 0.13 248);
+  --cat-competitor-bg: oklch(95.4% 0.024 248);
+  --cat-competitor-rule: oklch(58% 0.16 248);
+
+  --cat-demand:        oklch(42% 0.13 158);
+  --cat-demand-bg:     oklch(95.4% 0.026 158);
+  --cat-demand-rule:   oklch(56% 0.16 158);
+
+  --cat-regulatory:    oklch(44% 0.13 55);
+  --cat-regulatory-bg: oklch(95.4% 0.026 55);
+  --cat-regulatory-rule: oklch(60% 0.17 55);
+
+  --cat-commodity:     oklch(44% 0.13 300);
+  --cat-commodity-bg:  oklch(95.4% 0.024 300);
+  --cat-commodity-rule: oklch(56% 0.16 300);
+
+  --cat-jobs:          oklch(42% 0.12 200);
+  --cat-jobs-bg:       oklch(95.4% 0.022 200);
+  --cat-jobs-rule:     oklch(56% 0.15 200);
+
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html, body { background: var(--bg); }
+
+body {
+  font-family: var(--font);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* Topbar — same paper, hairline divider, no blur, no animation */
+.topbar {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.wordmark {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.wordmark::after {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  margin-left: 8px;
+  vertical-align: 1px;
+  border-radius: 1px;
+}
+.topbar-divider { width: 1px; height: 16px; background: var(--border); }
+.run-status {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.run-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: oklch(60% 0.16 152);
+}
+.topbar-spacer { flex: 1; }
+
+/* Selection */
+::selection { background: var(--accent-bg); color: var(--text-primary); }
+</style>
+
+<style>
+.sources-layout { display: flex; height: calc(100vh - 44px); overflow: hidden; }
+
+.sources-sidebar {
+  width: 224px;
+  flex-shrink: 0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sb-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-quaternary);
+  padding: 0 10px;
+  margin-bottom: 5px;
+}
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  text-decoration: none;
+  transition: background 0.12s var(--ease), color 0.12s var(--ease);
+}
+.sb-link:hover { background: var(--bg-hover); color: var(--text-primary); }
+.sb-link.active { background: var(--sb-active); color: var(--text-primary); font-weight: 500; }
+.cat-pip { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+.pip-all { background: var(--text-quaternary); }
+
+.sources-main {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  background: var(--bg);
+}
+.sources-main::-webkit-scrollbar { width: 6px; }
+.sources-main::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 3px; }
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.section-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+}
+.section-count {
+  font-size: 11px;
+  color: var(--text-quaternary);
+  font-variant-numeric: tabular-nums;
+}
+
+.sources-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.sources-table th {
+  text-align: left;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-tertiary);
+  padding: 0 12px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.sources-table th:first-child { padding-left: 0; }
+.sources-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  color: var(--text-secondary);
+}
+.sources-table td:first-child { padding-left: 0; }
+.sources-table tr:last-child td { border-bottom: none; }
+.sources-table tr:hover td { background: var(--bg-panel); }
+
+.source-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+  display: block;
+}
+.source-url {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  max-width: 420px;
+  display: block;
+  text-decoration: none;
+  line-height: 1.35;
+}
+.source-url:hover { color: var(--accent); }
+
+.status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.status-active { background: oklch(60% 0.18 152); }
+.status-inactive { background: var(--border-mid); }
+
+.type-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1px 6px;
+  border-radius: 2px;
+  border: 1px solid currentColor;
+}
+.type-rss { color: var(--cat-competitor); }
+.type-scrape { color: var(--cat-regulatory); }
+.type-linkedin { color: var(--cat-jobs); }
+
+.error-text { color: oklch(48% 0.16 25); font-size: 11.5px; }
+.ts { font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-tertiary); white-space: nowrap; }
+.ts-never { color: var(--text-quaternary); }
+</style>
+
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">CoirIntel</div>
+  <div class="topbar-divider"></div>
+  <div class="run-status"><span class="run-dot"></span>Live</div>
+  <div class="topbar-spacer"></div>
+  <span class="run-status">Last updated 23 Oct 2026, 13:30 IST</span>
+</div>
+
+<div class="sources-layout">
+
+  <div class="sources-sidebar">
+    <div class="sb-label" style="margin-bottom:6px;">Navigate</div>
+    <a href="../" class="sb-link">
+      <span class="cat-pip pip-all"></span>
+      Feed
+    </a>
+    <a href="./" class="sb-link active">
+      <span class="cat-pip" style="background:var(--accent)"></span>
+      Sources
+    </a>
+  </div>
+
+  <div class="sources-main">
+
+    
+    
+    
+    
+    <div>
+      <div class="section-head">
+        <span class="section-title">RSS</span>
+        <span class="section-count">62 sources</span>
+      </div>
+      <table class="sources-table">
+        <thead>
+          <tr>
+            <th>Name / URL</th>
+            <th>Status</th>
+            <th>Last Fetched</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td>
+              <span class="source-name">AGF.nl</span>
+              
+              <a class="source-url" href="https://www.agf.nl" target="_blank" rel="noopener noreferrer" title="https://www.agf.nl">https://www.agf.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AgFunder News</span>
+              
+              <a class="source-url" href="https://agfundernews.com" target="_blank" rel="noopener noreferrer" title="https://agfundernews.com">https://agfundernews.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Agraria.pe</span>
+              
+              <a class="source-url" href="https://www.agraria.pe" target="_blank" rel="noopener noreferrer" title="https://www.agraria.pe">https://www.agraria.pe</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AgriBusiness Global</span>
+              
+              <a class="source-url" href="https://www.agribusinessglobal.com" target="_blank" rel="noopener noreferrer" title="https://www.agribusinessglobal.com">https://www.agribusinessglobal.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Andina Agro</span>
+              
+              <a class="source-url" href="https://andina.pe/agencia/seccion-agro-39.aspx" target="_blank" rel="noopener noreferrer" title="https://andina.pe/agencia/seccion-agro-39.aspx">https://andina.pe/agencia/seccion-agro-39.aspx</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AUSVEG</span>
+              
+              <a class="source-url" href="https://ausveg.com.au" target="_blank" rel="noopener noreferrer" title="https://ausveg.com.au">https://ausveg.com.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Business of Cannabis</span>
+              
+              <a class="source-url" href="https://businessofcannabis.com" target="_blank" rel="noopener noreferrer" title="https://businessofcannabis.com">https://businessofcannabis.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">BvCW</span>
+              
+              <a class="source-url" href="https://cannabiswirtschaft.de" target="_blank" rel="noopener noreferrer" title="https://cannabiswirtschaft.de">https://cannabiswirtschaft.de</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis &amp; Tech Today</span>
+              
+              <a class="source-url" href="https://cannatechtoday.com" target="_blank" rel="noopener noreferrer" title="https://cannatechtoday.com">https://cannatechtoday.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Business Times</span>
+              
+              <a class="source-url" href="https://www.cannabisbusinesstimes.com" target="_blank" rel="noopener noreferrer" title="https://www.cannabisbusinesstimes.com">https://www.cannabisbusinesstimes.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Health News UK</span>
+              
+              <a class="source-url" href="https://cannabishealthnews.co.uk" target="_blank" rel="noopener noreferrer" title="https://cannabishealthnews.co.uk">https://cannabishealthnews.co.uk</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Industry Journal</span>
+              
+              <a class="source-url" href="https://cannabisindustryjournal.com" target="_blank" rel="noopener noreferrer" title="https://cannabisindustryjournal.com">https://cannabisindustryjournal.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Now</span>
+              
+              <a class="source-url" href="https://cannabisnow.com" target="_blank" rel="noopener noreferrer" title="https://cannabisnow.com">https://cannabisnow.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Science and Technology</span>
+              
+              <a class="source-url" href="https://www.cannabissciencetech.com" target="_blank" rel="noopener noreferrer" title="https://www.cannabissciencetech.com">https://www.cannabissciencetech.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabiz Australia</span>
+              
+              <a class="source-url" href="https://www.cannabiz.com.au" target="_blank" rel="noopener noreferrer" title="https://www.cannabiz.com.au">https://www.cannabiz.com.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ComexPerú</span>
+              
+              <a class="source-url" href="https://www.comexperu.org.pe" target="_blank" rel="noopener noreferrer" title="https://www.comexperu.org.pe">https://www.comexperu.org.pe</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Commodity Online</span>
+              
+              <a class="source-url" href="https://www.commodityonline.com" target="_blank" rel="noopener noreferrer" title="https://www.commodityonline.com">https://www.commodityonline.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Economic Times Agriculture</span>
+              
+              <a class="source-url" href="https://economictimes.indiatimes.com/news/economy/agriculture" target="_blank" rel="noopener noreferrer" title="https://economictimes.indiatimes.com/news/economy/agriculture">https://economictimes.indiatimes.com/news/economy/agriculture</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">EIHA</span>
+              
+              <a class="source-url" href="https://eiha.org" target="_blank" rel="noopener noreferrer" title="https://eiha.org">https://eiha.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fedefruta</span>
+              
+              <a class="source-url" href="https://fedefruta.cl" target="_blank" rel="noopener noreferrer" title="https://fedefruta.cl">https://fedefruta.cl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FloralDaily</span>
+              
+              <a class="source-url" href="https://www.floraldaily.com" target="_blank" rel="noopener noreferrer" title="https://www.floraldaily.com">https://www.floraldaily.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fresh Fruit Perú</span>
+              
+              <a class="source-url" href="https://freshfruit.pe" target="_blank" rel="noopener noreferrer" title="https://freshfruit.pe">https://freshfruit.pe</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fresh Produce Journal</span>
+              
+              <a class="source-url" href="https://www.fruitnet.com/fresh-produce-journal/" target="_blank" rel="noopener noreferrer" title="https://www.fruitnet.com/fresh-produce-journal/">https://www.fruitnet.com/fresh-produce-journal/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FreshFruitPortal</span>
+              
+              <a class="source-url" href="https://www.freshfruitportal.com" target="_blank" rel="noopener noreferrer" title="https://www.freshfruitportal.com">https://www.freshfruitportal.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FreshPlaza</span>
+              
+              <a class="source-url" href="https://www.freshplaza.com" target="_blank" rel="noopener noreferrer" title="https://www.freshplaza.com">https://www.freshplaza.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fruchthandel Magazin</span>
+              
+              <a class="source-url" href="https://www.fruchthandel.de" target="_blank" rel="noopener noreferrer" title="https://www.fruchthandel.de">https://www.fruchthandel.de</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fruitnet</span>
+              
+              <a class="source-url" href="https://www.fruitnet.com" target="_blank" rel="noopener noreferrer" title="https://www.fruitnet.com">https://www.fruitnet.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Garden Center Magazine</span>
+              
+              <a class="source-url" href="https://www.gardencentermag.com" target="_blank" rel="noopener noreferrer" title="https://www.gardencentermag.com">https://www.gardencentermag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Garden Culture Magazine</span>
+              
+              <a class="source-url" href="https://gardenculturemagazine.com" target="_blank" rel="noopener noreferrer" title="https://gardenculturemagazine.com">https://gardenculturemagazine.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Gestión Agroexportación</span>
+              
+              <a class="source-url" href="https://gestion.pe/noticias/agroexportacion/" target="_blank" rel="noopener noreferrer" title="https://gestion.pe/noticias/agroexportacion/">https://gestion.pe/noticias/agroexportacion/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Global AgInvesting</span>
+              
+              <a class="source-url" href="https://www.globalaginvesting.com" target="_blank" rel="noopener noreferrer" title="https://www.globalaginvesting.com">https://www.globalaginvesting.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Good Fruit &amp; Vegetables</span>
+              
+              <a class="source-url" href="https://www.goodfruitandvegetables.com.au" target="_blank" rel="noopener noreferrer" title="https://www.goodfruitandvegetables.com.au">https://www.goodfruitandvegetables.com.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Greenhouse Grower</span>
+              
+              <a class="source-url" href="https://www.greenhousegrower.com" target="_blank" rel="noopener noreferrer" title="https://www.greenhousegrower.com">https://www.greenhousegrower.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Greenhouse Management</span>
+              
+              <a class="source-url" href="https://www.greenhousemag.com" target="_blank" rel="noopener noreferrer" title="https://www.greenhousemag.com">https://www.greenhousemag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Greenhouse Product News</span>
+              
+              <a class="source-url" href="https://gpnmag.com" target="_blank" rel="noopener noreferrer" title="https://gpnmag.com">https://gpnmag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Groenten &amp; Fruit GFActueel</span>
+              
+              <a class="source-url" href="https://www.gfactueel.nl" target="_blank" rel="noopener noreferrer" title="https://www.gfactueel.nl">https://www.gfactueel.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Grow Magazine</span>
+              
+              <a class="source-url" href="https://growmag.com" target="_blank" rel="noopener noreferrer" title="https://growmag.com">https://growmag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Grozine</span>
+              
+              <a class="source-url" href="https://www.grozine.com" target="_blank" rel="noopener noreferrer" title="https://www.grozine.com">https://www.grozine.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hanf Magazin</span>
+              
+              <a class="source-url" href="https://www.hanf-magazin.com" target="_blank" rel="noopener noreferrer" title="https://www.hanf-magazin.com">https://www.hanf-magazin.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hanfjournal</span>
+              
+              <a class="source-url" href="https://hanfjournal.de" target="_blank" rel="noopener noreferrer" title="https://hanfjournal.de">https://hanfjournal.de</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hort Americas Blog</span>
+              
+              <a class="source-url" href="https://hortamericas.com/category/blog/" target="_blank" rel="noopener noreferrer" title="https://hortamericas.com/category/blog/">https://hortamericas.com/category/blog/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hortalizas.com</span>
+              
+              <a class="source-url" href="https://www.hortalizas.com" target="_blank" rel="noopener noreferrer" title="https://www.hortalizas.com">https://www.hortalizas.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">HortiDaily</span>
+              
+              <a class="source-url" href="https://www.hortidaily.com" target="_blank" rel="noopener noreferrer" title="https://www.hortidaily.com">https://www.hortidaily.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Krishi Jagran</span>
+              
+              <a class="source-url" href="https://krishijagran.com" target="_blank" rel="noopener noreferrer" title="https://krishijagran.com">https://krishijagran.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Lawn &amp; Garden Retailer</span>
+              
+              <a class="source-url" href="https://lgrmag.com" target="_blank" rel="noopener noreferrer" title="https://lgrmag.com">https://lgrmag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Lawn &amp; Landscape</span>
+              
+              <a class="source-url" href="https://www.lawnandlandscape.com" target="_blank" rel="noopener noreferrer" title="https://www.lawnandlandscape.com">https://www.lawnandlandscape.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Leafly Europe</span>
+              
+              <a class="source-url" href="https://www.leafly.com/news/tags/europe/" target="_blank" rel="noopener noreferrer" title="https://www.leafly.com/news/tags/europe/">https://www.leafly.com/news/tags/europe/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Marijuana Venture</span>
+              
+              <a class="source-url" href="https://www.marijuanaventure.com" target="_blank" rel="noopener noreferrer" title="https://www.marijuanaventure.com">https://www.marijuanaventure.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">MJBizDaily Europe</span>
+              
+              <a class="source-url" href="https://mjbizdaily.com/topic/europe/" target="_blank" rel="noopener noreferrer" title="https://mjbizdaily.com/topic/europe/">https://mjbizdaily.com/topic/europe/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">MMJ Daily</span>
+              
+              <a class="source-url" href="https://www.mmjdaily.com" target="_blank" rel="noopener noreferrer" title="https://www.mmjdaily.com">https://www.mmjdaily.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Nieuwe Oogst</span>
+              
+              <a class="source-url" href="https://www.nieuweoogst.nl" target="_blank" rel="noopener noreferrer" title="https://www.nieuweoogst.nl">https://www.nieuweoogst.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Nursery Management</span>
+              
+              <a class="source-url" href="https://www.nurserymag.com" target="_blank" rel="noopener noreferrer" title="https://www.nurserymag.com">https://www.nurserymag.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">PortalFrutícola</span>
+              
+              <a class="source-url" href="https://www.portalfruticola.com" target="_blank" rel="noopener noreferrer" title="https://www.portalfruticola.com">https://www.portalfruticola.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Produce Grower</span>
+              
+              <a class="source-url" href="https://www.producegrower.com" target="_blank" rel="noopener noreferrer" title="https://www.producegrower.com">https://www.producegrower.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Produce Market Guide Blueberry</span>
+              
+              <a class="source-url" href="https://www.producemarketguide.com/news?cat=Blueberries" target="_blank" rel="noopener noreferrer" title="https://www.producemarketguide.com/news?cat=Blueberries">https://www.producemarketguide.com/news?cat=Blueberries</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Producebusiness UK</span>
+              
+              <a class="source-url" href="https://www.producebusinessuk.com" target="_blank" rel="noopener noreferrer" title="https://www.producebusinessuk.com">https://www.producebusinessuk.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Redagrícola</span>
+              
+              <a class="source-url" href="https://redagricola.com" target="_blank" rel="noopener noreferrer" title="https://redagricola.com">https://redagricola.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SimFruit</span>
+              
+              <a class="source-url" href="https://www.simfruit.cl" target="_blank" rel="noopener noreferrer" title="https://www.simfruit.cl">https://www.simfruit.cl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">The Hindu BusinessLine Agri</span>
+              
+              <a class="source-url" href="https://www.thehindubusinessline.com/economy/agri-business/" target="_blank" rel="noopener noreferrer" title="https://www.thehindubusinessline.com/economy/agri-business/">https://www.thehindubusinessline.com/economy/agri-business/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">The Packer</span>
+              
+              <a class="source-url" href="https://www.thepacker.com" target="_blank" rel="noopener noreferrer" title="https://www.thepacker.com">https://www.thepacker.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Urban Ag News</span>
+              
+              <a class="source-url" href="https://urbanagnews.com" target="_blank" rel="noopener noreferrer" title="https://urbanagnews.com">https://urbanagnews.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Vertical Farm Daily</span>
+              
+              <a class="source-url" href="https://www.verticalfarmdaily.com" target="_blank" rel="noopener noreferrer" title="https://www.verticalfarmdaily.com">https://www.verticalfarmdaily.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:51 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    
+    
+    
+    <div>
+      <div class="section-head">
+        <span class="section-title">SCRAPE</span>
+        <span class="section-count">100 sources</span>
+      </div>
+      <table class="sources-table">
+        <thead>
+          <tr>
+            <th>Name / URL</th>
+            <th>Status</th>
+            <th>Last Fetched</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td>
+              <span class="source-name">AFSAR COIR EXPORTS (website)</span>
+              
+              <a class="source-url" href="https://afsar-exports.com" target="_blank" rel="noopener noreferrer" title="https://afsar-exports.com">https://afsar-exports.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AGAP</span>
+              
+              <a class="source-url" href="https://agapperu.org/en/" target="_blank" rel="noopener noreferrer" title="https://agapperu.org/en/">https://agapperu.org/en/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AIPH</span>
+              
+              <a class="source-url" href="https://aiph.org" target="_blank" rel="noopener noreferrer" title="https://aiph.org">https://aiph.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AmericanHort</span>
+              
+              <a class="source-url" href="https://americanhort.org" target="_blank" rel="noopener noreferrer" title="https://americanhort.org">https://americanhort.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AMHPAC</span>
+              
+              <a class="source-url" href="https://www.amhpac.org" target="_blank" rel="noopener noreferrer" title="https://www.amhpac.org">https://www.amhpac.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Aneberries</span>
+              
+              <a class="source-url" href="https://aneberries.mx" target="_blank" rel="noopener noreferrer" title="https://aneberries.mx">https://aneberries.mx</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">APEDA AgriExchange</span>
+              
+              <a class="source-url" href="https://agriexchange.apeda.gov.in/newsletter/newsletters/Newsletter.html" target="_blank" rel="noopener noreferrer" title="https://agriexchange.apeda.gov.in/newsletter/newsletters/Newsletter.html">https://agriexchange.apeda.gov.in/newsletter/newsletters/Newsletter.html</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ARCTIC TERN FARM PRODUCTS PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://arcticterninternational.com" target="_blank" rel="noopener noreferrer" title="https://arcticterninternational.com">https://arcticterninternational.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ASOEX</span>
+              
+              <a class="source-url" href="https://www.asoex.cl" target="_blank" rel="noopener noreferrer" title="https://www.asoex.cl">https://www.asoex.cl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-09-08 00:40 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span class="error-text">47 errors</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">AV EXPORTS (website)</span>
+              
+              <a class="source-url" href="https://avexports.in" target="_blank" rel="noopener noreferrer" title="https://avexports.in">https://avexports.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Berries Australia</span>
+              
+              <a class="source-url" href="https://berries.net.au" target="_blank" rel="noopener noreferrer" title="https://berries.net.au">https://berries.net.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">BIOGROW SUBSTRATES INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://biogrowsubstrates.in" target="_blank" rel="noopener noreferrer" title="https://biogrowsubstrates.in">https://biogrowsubstrates.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Bloem &amp; Blad</span>
+              
+              <a class="source-url" href="https://www.hortipoint.nl/bloemenblad/" target="_blank" rel="noopener noreferrer" title="https://www.hortipoint.nl/bloemenblad/">https://www.hortipoint.nl/bloemenblad/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Blueberries Consulting</span>
+              
+              <a class="source-url" href="https://blueberriesconsulting.com/en/" target="_blank" rel="noopener noreferrer" title="https://blueberriesconsulting.com/en/">https://blueberriesconsulting.com/en/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">BOTANICOIR INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.botanicoir.com" target="_blank" rel="noopener noreferrer" title="https://www.botanicoir.com">https://www.botanicoir.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Canadian Sphagnum Peat Moss Association</span>
+              
+              <a class="source-url" href="https://peatmoss.com/en/" target="_blank" rel="noopener noreferrer" title="https://peatmoss.com/en/">https://peatmoss.com/en/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Europa</span>
+              
+              <a class="source-url" href="https://cannabis-europa.com" target="_blank" rel="noopener noreferrer" title="https://cannabis-europa.com">https://cannabis-europa.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Cannabis Trades Association UK</span>
+              
+              <a class="source-url" href="https://www.cannabistrades.org" target="_blank" rel="noopener noreferrer" title="https://www.cannabistrades.org">https://www.cannabistrades.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">CAUVERI COCO PEAT PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://cauvericocopeat.com" target="_blank" rel="noopener noreferrer" title="https://cauvericocopeat.com">https://cauvericocopeat.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:58 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Central Coir Research Institute</span>
+              
+              <a class="source-url" href="https://www.ccriindia.org" target="_blank" rel="noopener noreferrer" title="https://www.ccriindia.org">https://www.ccriindia.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">COCOGREEN SUBSTRATES (website)</span>
+              
+              <a class="source-url" href="https://www.cocopeatpro.com" target="_blank" rel="noopener noreferrer" title="https://www.cocopeatpro.com">https://www.cocopeatpro.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">COCOMATS INTERNATIONAL (website)</span>
+              
+              <a class="source-url" href="https://www.cocomatsinternational.in" target="_blank" rel="noopener noreferrer" title="https://www.cocomatsinternational.in">https://www.cocomatsinternational.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts ts-never">Never</span>
+              
+            </td>
+            <td>
+              
+              <span class="error-text">153 errors</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Coconut Development Board India</span>
+              
+              <a class="source-url" href="https://coconutboard.gov.in" target="_blank" rel="noopener noreferrer" title="https://coconutboard.gov.in">https://coconutboard.gov.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">COCONUT PRODUCTS IMPEX (website)</span>
+              
+              <a class="source-url" href="https://www.coconutimpex.com" target="_blank" rel="noopener noreferrer" title="https://www.coconutimpex.com">https://www.coconutimpex.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Coconut Research Institute Sri Lanka</span>
+              
+              <a class="source-url" href="https://cri.gov.lk" target="_blank" rel="noopener noreferrer" title="https://cri.gov.lk">https://cri.gov.lk</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Coir Board India</span>
+              
+              <a class="source-url" href="https://coirboard.gov.in" target="_blank" rel="noopener noreferrer" title="https://coirboard.gov.in">https://coirboard.gov.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-08-16 00:37 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span class="error-text">70 errors</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">De Boomkwekerij</span>
+              
+              <a class="source-url" href="https://www.hortipoint.nl/deboomkwekerij/" target="_blank" rel="noopener noreferrer" title="https://www.hortipoint.nl/deboomkwekerij/">https://www.hortipoint.nl/deboomkwekerij/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">DUINKOP ENTERPRISES PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://duinkop.com" target="_blank" rel="noopener noreferrer" title="https://duinkop.com">https://duinkop.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">DUTCH PLANTIN COIR INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.dutchplantin.com/en/" target="_blank" rel="noopener noreferrer" title="https://www.dutchplantin.com/en/">https://www.dutchplantin.com/en/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ECO COIR PRODUCTS (website)</span>
+              
+              <a class="source-url" href="https://www.ecocoir.com" target="_blank" rel="noopener noreferrer" title="https://www.ecocoir.com">https://www.ecocoir.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:58 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FICEA</span>
+              
+              <a class="source-url" href="http://www.ficea.in" target="_blank" rel="noopener noreferrer" title="http://www.ficea.in">http://www.ficea.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FIEO</span>
+              
+              <a class="source-url" href="https://fieo.org" target="_blank" rel="noopener noreferrer" title="https://fieo.org">https://fieo.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">FloraCulture International</span>
+              
+              <a class="source-url" href="https://www.floraculture.eu" target="_blank" rel="noopener noreferrer" title="https://www.floraculture.eu">https://www.floraculture.eu</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Floribusiness</span>
+              
+              <a class="source-url" href="https://www.floribusiness.com" target="_blank" rel="noopener noreferrer" title="https://www.floribusiness.com">https://www.floribusiness.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Fruit &amp; Vine</span>
+              
+              <a class="source-url" href="https://www.fruitandvine.co.uk" target="_blank" rel="noopener noreferrer" title="https://www.fruitandvine.co.uk">https://www.fruitandvine.co.uk</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GALUKU EXPORTS INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://galuku.com" target="_blank" rel="noopener noreferrer" title="https://galuku.com">https://galuku.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Glastuinbouw Nederland</span>
+              
+              <a class="source-url" href="https://www.glastuinbouwnederland.nl" target="_blank" rel="noopener noreferrer" title="https://www.glastuinbouwnederland.nl">https://www.glastuinbouwnederland.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GREENEEM AGRI PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.greeneem.com" target="_blank" rel="noopener noreferrer" title="https://www.greeneem.com">https://www.greeneem.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GREENGLOBE EXPORTS INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://greglo.com" target="_blank" rel="noopener noreferrer" title="https://greglo.com">https://greglo.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Greenity</span>
+              
+              <a class="source-url" href="https://www.greenity.nl" target="_blank" rel="noopener noreferrer" title="https://www.greenity.nl">https://www.greenity.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Greenlife Industry Australia</span>
+              
+              <a class="source-url" href="https://greenlifeindustry.org.au" target="_blank" rel="noopener noreferrer" title="https://greenlifeindustry.org.au">https://greenlifeindustry.org.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GreenTech Amsterdam</span>
+              
+              <a class="source-url" href="https://www.greentech.nl" target="_blank" rel="noopener noreferrer" title="https://www.greentech.nl">https://www.greentech.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Groentennieuws</span>
+              
+              <a class="source-url" href="https://www.groentennieuws.nl" target="_blank" rel="noopener noreferrer" title="https://www.groentennieuws.nl">https://www.groentennieuws.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GROW HIGH EXPORT (website)</span>
+              
+              <a class="source-url" href="https://growhighexport.com" target="_blank" rel="noopener noreferrer" title="https://growhighexport.com">https://growhighexport.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">grow! Magazin</span>
+              
+              <a class="source-url" href="https://www.grow.de/home" target="_blank" rel="noopener noreferrer" title="https://www.grow.de/home">https://www.grow.de/home</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GrowerTalks / Acres Online</span>
+              
+              <a class="source-url" href="https://www.growertalks.com" target="_blank" rel="noopener noreferrer" title="https://www.growertalks.com">https://www.growertalks.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Growing Media Europe</span>
+              
+              <a class="source-url" href="https://www.growing-media.eu" target="_blank" rel="noopener noreferrer" title="https://www.growing-media.eu">https://www.growing-media.eu</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">HARISH COCONUT PRODUCTS PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.harishcoconutproducts.com" target="_blank" rel="noopener noreferrer" title="https://www.harishcoconutproducts.com">https://www.harishcoconutproducts.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hort Innovation Australia</span>
+              
+              <a class="source-url" href="https://www.horticulture.com.au" target="_blank" rel="noopener noreferrer" title="https://www.horticulture.com.au">https://www.horticulture.com.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hortibiz Daily</span>
+              
+              <a class="source-url" href="https://www.hortibiz.com" target="_blank" rel="noopener noreferrer" title="https://www.hortibiz.com">https://www.hortibiz.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Hortifruti Brasil</span>
+              
+              <a class="source-url" href="https://www.hfbrasil.org.br" target="_blank" rel="noopener noreferrer" title="https://www.hfbrasil.org.br">https://www.hfbrasil.org.br</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">HortWeek</span>
+              
+              <a class="source-url" href="https://www.hortweek.com" target="_blank" rel="noopener noreferrer" title="https://www.hortweek.com">https://www.hortweek.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">HTA</span>
+              
+              <a class="source-url" href="https://hta.org.uk" target="_blank" rel="noopener noreferrer" title="https://hta.org.uk">https://hta.org.uk</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ICC Market Reviews</span>
+              
+              <a class="source-url" href="https://coconutcommunity.org/page-statistics/market-review" target="_blank" rel="noopener noreferrer" title="https://coconutcommunity.org/page-statistics/market-review">https://coconutcommunity.org/page-statistics/market-review</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">iGrow News</span>
+              
+              <a class="source-url" href="https://igrownews.com" target="_blank" rel="noopener noreferrer" title="https://igrownews.com">https://igrownews.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Indian Horticulture Magazine</span>
+              
+              <a class="source-url" href="https://epubs.icar.org.in/index.php/IndHort" target="_blank" rel="noopener noreferrer" title="https://epubs.icar.org.in/index.php/IndHort">https://epubs.icar.org.in/index.php/IndHort</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Inside Grower</span>
+              
+              <a class="source-url" href="https://www.insidegrower.com" target="_blank" rel="noopener noreferrer" title="https://www.insidegrower.com">https://www.insidegrower.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">International Blueberry Organization</span>
+              
+              <a class="source-url" href="https://www.internationalblueberry.org" target="_blank" rel="noopener noreferrer" title="https://www.internationalblueberry.org">https://www.internationalblueberry.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">International Coconut Community</span>
+              
+              <a class="source-url" href="https://coconutcommunity.org" target="_blank" rel="noopener noreferrer" title="https://coconutcommunity.org">https://coconutcommunity.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">International Fresh Produce Association</span>
+              
+              <a class="source-url" href="https://www.freshproduce.com" target="_blank" rel="noopener noreferrer" title="https://www.freshproduce.com">https://www.freshproduce.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">International Peatland Society</span>
+              
+              <a class="source-url" href="https://peatlands.org" target="_blank" rel="noopener noreferrer" title="https://peatlands.org">https://peatlands.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">iQonsulting</span>
+              
+              <a class="source-url" href="https://www.iqonsulting.com" target="_blank" rel="noopener noreferrer" title="https://www.iqonsulting.com">https://www.iqonsulting.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ISHS</span>
+              
+              <a class="source-url" href="https://www.ishs.org" target="_blank" rel="noopener noreferrer" title="https://www.ishs.org">https://www.ishs.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">KING AGRO PRODUCTS (website)</span>
+              
+              <a class="source-url" href="https://kingagroproducts.com" target="_blank" rel="noopener noreferrer" title="https://kingagroproducts.com">https://kingagroproducts.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">LEGRO INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://legrogroup.com/en" target="_blank" rel="noopener noreferrer" title="https://legrogroup.com/en">https://legrogroup.com/en</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">MEADOW (website)</span>
+              
+              <a class="source-url" href="https://meadowindia.com" target="_blank" rel="noopener noreferrer" title="https://meadowindia.com">https://meadowindia.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Mintec Global</span>
+              
+              <a class="source-url" href="https://www.mintecglobal.com" target="_blank" rel="noopener noreferrer" title="https://www.mintecglobal.com">https://www.mintecglobal.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Mulch &amp; Soil Council USA</span>
+              
+              <a class="source-url" href="https://www.mulchandsoilcouncil.org" target="_blank" rel="noopener noreferrer" title="https://www.mulchandsoilcouncil.org">https://www.mulchandsoilcouncil.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">NFU Horticulture</span>
+              
+              <a class="source-url" href="https://www.nfuonline.com" target="_blank" rel="noopener noreferrer" title="https://www.nfuonline.com">https://www.nfuonline.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">North American Blueberry Council</span>
+              
+              <a class="source-url" href="https://nabc.blueberry.org" target="_blank" rel="noopener noreferrer" title="https://nabc.blueberry.org">https://nabc.blueberry.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Onder Glas</span>
+              
+              <a class="source-url" href="https://www.onderglas.nl" target="_blank" rel="noopener noreferrer" title="https://www.onderglas.nl">https://www.onderglas.nl</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">PELEMIX INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://pelemix.com" target="_blank" rel="noopener noreferrer" title="https://pelemix.com">https://pelemix.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ProArándanos</span>
+              
+              <a class="source-url" href="https://proarandanos.org.pe/en/home/" target="_blank" rel="noopener noreferrer" title="https://proarandanos.org.pe/en/home/">https://proarandanos.org.pe/en/home/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Prohibition Partners ICW</span>
+              
+              <a class="source-url" href="https://prohibitionpartners.com" target="_blank" rel="noopener noreferrer" title="https://prohibitionpartners.com">https://prohibitionpartners.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Protected Cropping Australia</span>
+              
+              <a class="source-url" href="https://protectedcropping.net.au" target="_blank" rel="noopener noreferrer" title="https://protectedcropping.net.au">https://protectedcropping.net.au</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-17 00:38 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span class="error-text">8 errors</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">PSG COIR PRODUCTS (website)</span>
+              
+              <a class="source-url" href="https://www.psgcoirs.com" target="_blank" rel="noopener noreferrer" title="https://www.psgcoirs.com">https://www.psgcoirs.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">R A R COIR INDUSTRIES (website)</span>
+              
+              <a class="source-url" href="https://rarcoir.com" target="_blank" rel="noopener noreferrer" title="https://rarcoir.com">https://rarcoir.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">RAJAHRANI IMPEX PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.rajaraniimpex.com" target="_blank" rel="noopener noreferrer" title="https://www.rajaraniimpex.com">https://www.rajaraniimpex.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">REMMY SUBSTRATES INDIA PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.remmysubstrates.com" target="_blank" rel="noopener noreferrer" title="https://www.remmysubstrates.com">https://www.remmysubstrates.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Responsibly Produced Peat Foundation</span>
+              
+              <a class="source-url" href="https://www.responsiblyproducedpeat.org" target="_blank" rel="noopener noreferrer" title="https://www.responsiblyproducedpeat.org">https://www.responsiblyproducedpeat.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">ROOT COIR (website)</span>
+              
+              <a class="source-url" href="https://www.rootscoirs.com" target="_blank" rel="noopener noreferrer" title="https://www.rootscoirs.com">https://www.rootscoirs.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Royal FloraHolland</span>
+              
+              <a class="source-url" href="https://www.royalfloraholland.com" target="_blank" rel="noopener noreferrer" title="https://www.royalfloraholland.com">https://www.royalfloraholland.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Rural Marketing Magazine</span>
+              
+              <a class="source-url" href="https://www.ruralmarketing.in" target="_blank" rel="noopener noreferrer" title="https://www.ruralmarketing.in">https://www.ruralmarketing.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SAANVI AGRICULTURAL PRODUCTS PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.saanviproducts.com" target="_blank" rel="noopener noreferrer" title="https://www.saanviproducts.com">https://www.saanviproducts.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SATYAM COIR PRODUCTS (website)</span>
+              
+              <a class="source-url" href="https://satyamcoirs.in" target="_blank" rel="noopener noreferrer" title="https://satyamcoirs.in">https://satyamcoirs.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SIVANTHI JOE COIRS (website)</span>
+              
+              <a class="source-url" href="https://www.sivanthijoecoirs.com" target="_blank" rel="noopener noreferrer" title="https://www.sivanthijoecoirs.com">https://www.sivanthijoecoirs.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Soil &amp; Mulch Producer News</span>
+              
+              <a class="source-url" href="https://www.soilandmulchproducernews.com" target="_blank" rel="noopener noreferrer" title="https://www.soilandmulchproducernews.com">https://www.soilandmulchproducernews.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Soil Science Society of America</span>
+              
+              <a class="source-url" href="https://www.soils.org" target="_blank" rel="noopener noreferrer" title="https://www.soils.org">https://www.soils.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:53 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SUSHIL GLOBAL EXPORTS (website)</span>
+              
+              <a class="source-url" href="https://sushilglobalexports.com" target="_blank" rel="noopener noreferrer" title="https://sushilglobalexports.com">https://sushilglobalexports.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SVR GREEN EXPORTS (website)</span>
+              
+              <a class="source-url" href="https://www.svrgreen.in" target="_blank" rel="noopener noreferrer" title="https://www.svrgreen.in">https://www.svrgreen.in</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">THAIAGAM AGROS (website)</span>
+              
+              <a class="source-url" href="https://thaiagam.com" target="_blank" rel="noopener noreferrer" title="https://thaiagam.com">https://thaiagam.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">The Commercial Greenhouse Grower</span>
+              
+              <a class="source-url" href="https://hortnews.com" target="_blank" rel="noopener noreferrer" title="https://hortnews.com">https://hortnews.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">The Fruit Grower</span>
+              
+              <a class="source-url" href="https://hortnews.com/fruit-grower/" target="_blank" rel="noopener noreferrer" title="https://hortnews.com/fruit-grower/">https://hortnews.com/fruit-grower/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">The Vegetable Farmer</span>
+              
+              <a class="source-url" href="https://hortnews.com/vegetable-farmer/" target="_blank" rel="noopener noreferrer" title="https://hortnews.com/vegetable-farmer/">https://hortnews.com/vegetable-farmer/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Tuin en Landschap</span>
+              
+              <a class="source-url" href="https://www.hortipoint.nl/tuinenlandschap/" target="_blank" rel="noopener noreferrer" title="https://www.hortipoint.nl/tuinenlandschap/">https://www.hortipoint.nl/tuinenlandschap/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:54 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">US Highbush Blueberry Council</span>
+              
+              <a class="source-url" href="https://ushbc.blueberry.org" target="_blank" rel="noopener noreferrer" title="https://ushbc.blueberry.org">https://ushbc.blueberry.org</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:57 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">VAIGHAI AGRO PRODUCTS LIMITED (website)</span>
+              
+              <a class="source-url" href="https://vaighaiagro.com" target="_blank" rel="noopener noreferrer" title="https://vaighaiagro.com">https://vaighaiagro.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:55 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">Vakblad voor de Bloemisterij</span>
+              
+              <a class="source-url" href="https://www.hortipoint.nl/vakbladvoordebloemisterij/" target="_blank" rel="noopener noreferrer" title="https://www.hortipoint.nl/vakbladvoordebloemisterij/">https://www.hortipoint.nl/vakbladvoordebloemisterij/</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:56 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">VILVVA INTERNATIONAL EXIM PRIVATE LIMITED (website)</span>
+              
+              <a class="source-url" href="https://www.vilvva.com" target="_blank" rel="noopener noreferrer" title="https://www.vilvva.com">https://www.vilvva.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts ts-never">Never</span>
+              
+            </td>
+            <td>
+              
+              <span class="error-text">153 errors</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">VIVA AGTECH PRODUCTS (website)</span>
+              
+              <a class="source-url" href="https://vivaagtechproducts.com" target="_blank" rel="noopener noreferrer" title="https://vivaagtechproducts.com">https://vivaagtechproducts.com</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:52 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    
+    
+    
+    <div>
+      <div class="section-head">
+        <span class="section-title">LINKEDIN</span>
+        <span class="section-count">19 sources</span>
+      </div>
+      <table class="sources-table">
+        <thead>
+          <tr>
+            <th>Name / URL</th>
+            <th>Status</th>
+            <th>Last Fetched</th>
+            <th>Errors</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          <tr>
+            <td>
+              <span class="source-name">BIOGROW SUBSTRATES INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/biogrow-substrates-india" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/biogrow-substrates-india">https://in.linkedin.com/company/biogrow-substrates-india</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:46 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">BOTANICOIR INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://www.linkedin.com/company/botanicoirltd" target="_blank" rel="noopener noreferrer" title="https://www.linkedin.com/company/botanicoirltd">https://www.linkedin.com/company/botanicoirltd</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:48 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">COCOMATS INTERNATIONAL (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/cocomats-international" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/cocomats-international">https://in.linkedin.com/company/cocomats-international</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:49 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">COCONUT PRODUCTS IMPEX (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/coconut-products-impex" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/coconut-products-impex">https://in.linkedin.com/company/coconut-products-impex</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:49 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">DUINKOP ENTERPRISES PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/duinkop-enterprises---india" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/duinkop-enterprises---india">https://in.linkedin.com/company/duinkop-enterprises---india</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:46 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">DUTCH PLANTIN COIR INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/dutch-plantin-coir-india-private-limited" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/dutch-plantin-coir-india-private-limited">https://in.linkedin.com/company/dutch-plantin-coir-india-private-limited</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:50 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GALUKU EXPORTS INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/galuku-exports-india-private-limited" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/galuku-exports-india-private-limited">https://in.linkedin.com/company/galuku-exports-india-private-limited</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:48 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">GREENGLOBE EXPORTS INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/gregloindia" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/gregloindia">https://in.linkedin.com/company/gregloindia</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:47 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">HARISH COCONUT PRODUCTS PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://www.linkedin.com/company/harish-coconut-products-private-limited" target="_blank" rel="noopener noreferrer" title="https://www.linkedin.com/company/harish-coconut-products-private-limited">https://www.linkedin.com/company/harish-coconut-products-private-limited</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:47 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">LEGRO INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/legro-potgrondbedrijf-bv" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/legro-potgrondbedrijf-bv">https://in.linkedin.com/company/legro-potgrondbedrijf-bv</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:48 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">MEADOW (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/meadowindia" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/meadowindia">https://in.linkedin.com/company/meadowindia</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:45 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">PELEMIX INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://il.linkedin.com/company/pelemix-usa" target="_blank" rel="noopener noreferrer" title="https://il.linkedin.com/company/pelemix-usa">https://il.linkedin.com/company/pelemix-usa</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:49 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">RAJAHRANI IMPEX PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/rajahrani-impex-private-limited" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/rajahrani-impex-private-limited">https://in.linkedin.com/company/rajahrani-impex-private-limited</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:48 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">REMMY SUBSTRATES INDIA PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/remmysubstrates" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/remmysubstrates">https://in.linkedin.com/company/remmysubstrates</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:46 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SAANVI AGRICULTURAL PRODUCTS PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/saanviagri" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/saanviagri">https://in.linkedin.com/company/saanviagri</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:47 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SATYAM COIR PRODUCTS (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/satyamcoirproducts" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/satyamcoirproducts">https://in.linkedin.com/company/satyamcoirproducts</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:45 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">SIVANTHI JOE COIRS (LinkedIn)</span>
+              
+              <a class="source-url" href="https://www.linkedin.com/company/sivanthi-joe-coirs" target="_blank" rel="noopener noreferrer" title="https://www.linkedin.com/company/sivanthi-joe-coirs">https://www.linkedin.com/company/sivanthi-joe-coirs</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:46 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">VAIGHAI AGRO PRODUCTS LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://in.linkedin.com/company/vaighai-agro-products-limited" target="_blank" rel="noopener noreferrer" title="https://in.linkedin.com/company/vaighai-agro-products-limited">https://in.linkedin.com/company/vaighai-agro-products-limited</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:47 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+          <tr>
+            <td>
+              <span class="source-name">WASSYA INTERTRADE PRIVATE LIMITED (LinkedIn)</span>
+              
+              <a class="source-url" href="https://www.linkedin.com/company/wassya-intertrade-p-ltd" target="_blank" rel="noopener noreferrer" title="https://www.linkedin.com/company/wassya-intertrade-p-ltd">https://www.linkedin.com/company/wassya-intertrade-p-ltd</a>
+              
+            </td>
+            <td>
+              <span class="status-dot status-active"></span>
+              Active
+            </td>
+            <td>
+              
+              <span class="ts">2026-10-23 07:49 UTC</span>
+              
+            </td>
+            <td>
+              
+              <span style="color:var(--text-tertiary);">—</span>
+              
+            </td>
+          </tr>
+          
+        </tbody>
+      </table>
+    </div>
+    
+    
+
+    
+
+  </div>
+</div>
+
+</body>
+</html>
